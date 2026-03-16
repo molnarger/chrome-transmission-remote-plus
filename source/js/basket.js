@@ -1,12 +1,17 @@
-
 function addTorrent(file) {
   var dirs = (localStorage.dLocation === 'dlcustom') ? JSON.parse(localStorage.dirs) : [];
 
   parseTorrent(file, function (torrent) {
     if (torrent !== null) {
-      chrome.windows.create({url: 'downloadTorrent.html', type: 'popup', width: 852, height: 583}, function (w) {
-        encodeFile(file, function (data) {
-          chrome.tabs.sendMessage(w.tabs[0].id, {torrent: torrent, data: data, dirs: dirs});
+      encodeFile(file, function (data) {
+        chrome.storage.session.set({
+          'torrentInfo:torrent': {
+            torrent : torrent,
+            data    : data,
+            dirs    : dirs
+          }
+        }, function () {
+          chrome.windows.create({url: 'downloadTorrent.html', type: 'popup', width: 852, height: 583});
         });
       });
     } else {
@@ -41,17 +46,24 @@ function discard(e) {
 }
 
 (function () {
-  var dropbox = jQuery('#dropbox');
+  var dropbox = document.getElementById('dropbox');
+  var hiddenFile = document.getElementById('hFile');
 
   window.onUnload = function () {
-    chrome.browserAction.setBadgeText({text: ''});
+    chrome.action.setBadgeText({text: ''});
   };
+
+  hiddenFile.addEventListener('change', function () {
+    if (this.files && this.files[0]) {
+      addTorrent(this.files[0]);
+    }
+  }, false);
 
   dropbox.addEventListener('dragenter', discard, false);
   dropbox.addEventListener('dragover', discard, false);
   dropbox.addEventListener('drop', drop, false);
 
   dropbox.addEventListener('click', function () {
-    jQuery('#hFile').click();
+    hiddenFile.click();
   }, false);
 }());
